@@ -34,7 +34,6 @@ public class latihan2 {
         frame.add(lF);
         frame.add(hasilF);
         frame.add(bK);
-        frame.add(new JLabel(""));
          
         bK.addActionListener(new ActionListener(){
            @Override
