@@ -15,6 +15,12 @@ public class AplikasiFileIO extends JFrame {
     private JTextArea textArea;
     private JButton btnOpenText, btnSaveText;
     private JButton btnSaveBinary, btnLoadBinary;
+    
+    // --- LATIHAN 3: Variable Tombol ---
+    private JButton btnSaveObj, btnLoadObj; 
+    // --- LATIHAN 4: Variable Tombol Baru ---
+    private JButton btnAppendText;
+    
     private JFileChooser fileChooser;
     
     public AplikasiFileIO() {
@@ -30,63 +36,67 @@ public class AplikasiFileIO extends JFrame {
         
         // panel tombol
         JPanel buttonPanel = new JPanel();
+        
+        // Tombol Latihan 1
         btnOpenText = new JButton("Buka Text");
         btnSaveText = new JButton("Simpan Text");
+        
+        // --- LATIHAN 4: Inisialisasi Tombol Append ---
+        btnAppendText = new JButton("Tambah Text (Append)");
+        
         btnSaveBinary = new JButton("Simpan config (Binary)");
         btnLoadBinary = new JButton("Muat config (Binary)");
         
+        // --- LATIHAN 3: Inisialisasi Tombol ---
+        btnSaveObj = new JButton("Simpan Objek");
+        btnLoadObj = new JButton("Baca Objek");
+        
+        // Masukkan ke panel
         buttonPanel.add(btnOpenText);
         buttonPanel.add(btnSaveText);
+        // --- LATIHAN 4: Masukin Tombol ke Panel ---
+        buttonPanel.add(btnAppendText);
+        
         buttonPanel.add(btnSaveBinary);
         buttonPanel.add(btnLoadBinary);
+        // --- LATIHAN 3: Masukin Tombol ke Panel ---
+        buttonPanel.add(btnSaveObj);
+        buttonPanel.add(btnLoadObj);
         
         //LAYOUT
         add(new JScrollPane(textArea), BorderLayout.CENTER);
         add(buttonPanel, BorderLayout.SOUTH);
         
         //EVENT HANDLING
-        //1.
         btnOpenText.addActionListener(e -> bukaFileTeks());
-        //2
         btnSaveText.addActionListener(e -> simpanFileTeks());
-        //3
         btnSaveBinary.addActionListener(e -> simpanConfigBinary());
-        //4
         btnLoadBinary.addActionListener(e -> muatConfigBinary());
-    }
+        
+        // --- LATIHAN 3 Handlers ---
+        btnSaveObj.addActionListener(e -> simpanUserConfig());
+        btnLoadObj.addActionListener(e -> bacaUserConfig());
+        
+        // --- LATIHAN 4 Handler ---
+        btnAppendText.addActionListener(e -> tambahFileTeks());
+
+        // --- LATIHAN 2 ---
+        bacaFileOtomatis();
+        
+    } 
     
     private void bukaFileTeks() {
         if(fileChooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
             File file = fileChooser.getSelectedFile();
-            BufferedReader reader = null;
-            
-            //try with resources otomatis menutup stream tanpa block finally manual
-            try {
-                //membuka stream
-                reader = new BufferedReader(new FileReader(file));
+            try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
                 textArea.setText("");
-                
                 String line;
-                //pane baris demi baris 
                 while ((line = reader.readLine()) != null) {
                     textArea.append(line + "\n");
                 }
-                
                 JOptionPane.showMessageDialog(this, "File berhasil dimuat!");
-                
-            } catch (FileNotFoundException ex) {
-                JOptionPane.showMessageDialog(this, "File tidak ditemukan : " + ex.getMessage());
             } catch (IOException ex) {
-                JOptionPane.showMessageDialog(this, "gagal membaca file : " + ex.getMessage());
-            } finally {
-                //blok finally : selalu dijalankan untuk menutup resource
-                try {
-                    if(reader != null) {
-                        reader.close();
-                    }
-                } catch (IOException ex) {
-                    ex.printStackTrace();
-                }
+                JOptionPane.showMessageDialog(this, "Gagal membaca file: " + ex.getMessage());
             }
         }
     } 
@@ -94,8 +104,6 @@ public class AplikasiFileIO extends JFrame {
     private void simpanFileTeks() {
         if(fileChooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
             File file = fileChooser.getSelectedFile();
-            
-            //TRY
             try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
                 writer.write(textArea.getText());
                 JOptionPane.showMessageDialog(this, "File berhasil disimpan!");
@@ -105,15 +113,11 @@ public class AplikasiFileIO extends JFrame {
         }
     }
     
-    //contoh menulis binary (menyimpan ukuran font seat ini ke dile .bin)
     private void simpanConfigBinary() {
         try (DataOutputStream dos =  new DataOutputStream(new FileOutputStream("config.bin"))) {
-            //kitas simpan ukuran font 
             int fontSize = textArea.getFont().getSize();
             dos.writeInt(fontSize);
-            
-            JOptionPane.showMessageDialog(this, "ukuran font (" + fontSize +") disimpan ke config .bin");
-                    
+            JOptionPane.showMessageDialog(this, "ukuran font (" + fontSize +") disimpan ke config .bin");       
         } catch (IOException ex) {
             JOptionPane.showMessageDialog(this, "gagal menyimpan binary : " + ex.getMessage());
         }
@@ -122,21 +126,73 @@ public class AplikasiFileIO extends JFrame {
     private void muatConfigBinary() {
         try(DataInputStream dis = new DataInputStream(new FileInputStream("config.bin"))) {
             int fontSize = dis.readInt();
-            
-            // Terapkan ke aplikasi
             textArea.setFont(new Font("Monospaced", Font.PLAIN, fontSize));
-        }catch (FileNotFoundException ex) {
-            JOptionPane.showMessageDialog(this, "File config.bin belum dibuat!");
-        }catch  (IOException ex) {
+        }catch (IOException ex) {
             JOptionPane.showMessageDialog(this, "gagal membaca" + ex.getMessage());
         }
     }
     
-    public static void main(String[] args) {
-     SwingUtilities.invokeLater(()-> {
-        new AplikasiFileIO().setVisible(true);
-     });
+    // --- LATIHAN 3 ---
+    private void simpanUserConfig() {
+        UserConfig config = new UserConfig();
+        config.SetUsername("MahasiswaUnpas"); 
+        config.setFontsize(textArea.getFont().getSize());
+        
+        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream("user.cfg"))) {
+            oos.writeObject(config);
+            JOptionPane.showMessageDialog(this, "Objek UserConfig berhasil disimpan!");
+        } catch (IOException ex) {
+            JOptionPane.showMessageDialog(this, "Gagal menyimpan objek: " + ex.getMessage());
+        }
+    }
+
+    private void bacaUserConfig() {
+        try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream("user.cfg"))) {
+            UserConfig config = (UserConfig) ois.readObject();
+            JOptionPane.showMessageDialog(this, 
+                "Username: " + config.getUsername() + "\n" +
+                "Font Size: " + config.getFontsize()
+            );
+            textArea.setFont(new Font("Monospaced", Font.PLAIN, config.getFontsize()));
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this, "Gagal membaca objek: " + ex.getMessage());
+        }
+    }
+
+    // --- LATIHAN 4 ---
+    private void tambahFileTeks() {
+        if (fileChooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
+            File file = fileChooser.getSelectedFile();
+            
+            try (BufferedWriter writer = new BufferedWriter(new FileWriter(file, true))) {
+                writer.newLine(); 
+                writer.write(textArea.getText());
+                JOptionPane.showMessageDialog(this, "Teks berhasil ditambahkan (Append)!");
+            } catch (IOException ex) {
+                JOptionPane.showMessageDialog(this, "Gagal append: " + ex.getMessage());
+            }
+        }
     }
     
-   
+    public static void main(String[] args) {
+      SwingUtilities.invokeLater(()-> {
+        new AplikasiFileIO().setVisible(true);
+      });
+    }
+    
+    // --- LATIHAN 2 ---
+    private void bacaFileOtomatis() {
+        File file = new File("last_notes.txt");
+        if (!file.exists()) return;
+        
+        try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+            String line;
+            textArea.setText("");
+            while ((line = reader.readLine()) != null) {
+                textArea.append(line + "\n");
+            }
+        } catch (IOException ex) {
+            
+        }
+    }
 }
